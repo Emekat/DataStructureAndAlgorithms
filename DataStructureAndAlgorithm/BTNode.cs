@@ -2,7 +2,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Runtime.ExceptionServices;
 using System.Text;
+using System.Windows.Markup;
 
 namespace DataStructureAndAlgorithm
 {
@@ -45,6 +47,19 @@ namespace DataStructureAndAlgorithm
             return _left;
         }
 
+        public void SetRight(BTNode<T> right)
+        {
+           _right = right;
+        }
+
+        public void SetLeft(BTNode<T> left)
+        {
+            _left = left;
+        }
+        public static BTNode<T> NewNode(T data)
+        {
+            return new BTNode<T>(data);
+        }
         public IEnumerable<T> PreOrderRecursive(BTNode<T> head)
         {
 
@@ -319,7 +334,6 @@ namespace DataStructureAndAlgorithm
                     node._right = Add(node._right, value);
                 }
             }
-
             return node;
         }
         private void AddTo(BTNode<T> node, T value)
@@ -351,7 +365,6 @@ namespace DataStructureAndAlgorithm
                     AddTo(node._right, value);
                 }
             }
-
         }
         public bool Contains(T value)
         {
@@ -404,5 +417,202 @@ namespace DataStructureAndAlgorithm
         {
             return GetEnumerator();
         }
+
+        #region Problem solutions
+
+        //first approach
+        //find largest value in left node
+        //find largest value in last node
+        //return value.
+        public int FindMaxElementRecursiveFirstApproach(BTNode<int> root)
+        {
+            int max = 0;
+            if(root == null)
+               return max;
+            if (root._left == null && root._right == null)
+                return root.Data;
+            BTNode<int> current = root; 
+            if (current._left.Data > max)
+                max = current._left.Data;
+
+            FindMaxElementRecursiveFirstApproach(current._left);
+            FindMaxElementRecursiveFirstApproach(current._right);
+
+            return max;
+        }
+
+        // traverse over in level order (left to right).. inserting into a queue in the process, then dequeue to get largest
+        public int FindMaxElementLevelOrderSecondApproach(BTNode<int> root)
+        {
+            int max = 0;
+            if (root == null)
+                return max;
+            Queue<BTNode<int>> q = new Queue<BTNode<int>>();
+            BTNode<int> current = root;
+            
+            //Add node to queue
+            q.Enqueue(current);
+            BTNode<int> node = null;
+            while (q.Count > 0)
+            {
+                node = q.Dequeue();
+                if (max < node.Data)
+                    max = node.Data;
+                if (node._left != null)
+                    q.Enqueue(node._left);
+                if (node._right != null)
+                    q.Enqueue(node._right);
+            }
+            return max;
+        }
+
+        // traverse over in level order (left to right).. inserting into a queue in the process, then dequeue to get largest
+        public int FindMaxElementInOrderThirdApproach(BTNode<int> root)
+        {
+            List<int> elements = new List<int>();
+            if (root == null)
+                return 0;
+            var stack = new Stack<BTNode<int>>();
+            BTNode<int> current = root;
+            
+            while (current != null && stack.Count > 0)
+            {
+                if (current != null)
+                {
+                    stack.Push(current);
+                    current = current._left;
+                }
+                else
+                {
+                    current = stack.Pop();
+                    elements.Add(current.Data);
+                    current = current._right;
+                }
+            }
+            //convert to array and get last element
+            int listLenght = elements.Count;
+            return elements[listLenght - 1];
+        }
+
+
+        public void PrintLevelOrder(BTNode<T> head)
+        {
+            var iterator = LevelOrder(head);
+            PrintBST(iterator);
+        }
+
+        public void PrintInOrder(BTNode<T> head)
+        {
+            var iterator = InOrderNonRecursive(head);
+            PrintBST(iterator);
+        }
+        public static void PrintBST(IEnumerable<T> argument)
+        {
+            foreach (var i in argument)
+            {
+                Console.WriteLine(i);
+            }
+        }
+
+
+        //geeksforgeeks.org
+        public static BTNode<T> BSTToSortedLinkedList(BTNode<T> head, BTNode<T> head_ref)
+        {
+            if (head == null)
+                return head_ref;
+
+            //recursively convert right subtree
+            head_ref = BSTToSortedLinkedList(head._right, head_ref);
+
+            //insert root into linkedlist
+            head._right = head_ref;
+
+            //change left pointer of previous of head to point to null
+            if (head_ref != null)
+                (head_ref)._left = null;
+
+            //change head of linkedlist
+            head_ref = head;
+
+
+            //recursively convert left subtree
+            head_ref = BSTToSortedLinkedList(head._left, head_ref);
+
+            return head_ref;
+        }
+
+        //geeksforgeeks.org
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="head">Root of minheap</param>
+        /// <param name="headOfSortedList">pointer to head node of sorted linkedlist</param>
+        /// <returns></returns>
+        public static BTNode<T> SortedLinkedListToMinHeap(BTNode<T> head, BTNode<T> headOfSortedList)
+        {
+            if (head == null)
+                return null;
+
+            //store parent nodes in queue
+            var queue = new Queue<BTNode<T>>();
+
+            //first node is always the root node
+            head = headOfSortedList;
+
+            //advance pointer to the next node
+            headOfSortedList = headOfSortedList._right;
+
+            //set right child to null
+            head._right = null;
+
+            //add first node to the queue
+            queue.Enqueue(head);
+
+            //loop until end of linkedlist
+            while (head != null)
+            {
+                //take parent node from queue
+                var parent = queue.Dequeue();
+
+               //take next two nodes from list add them as children of current parent node
+               var leftChild = head;
+               head = head._right;
+               leftChild._right = null;
+               queue.Enqueue(leftChild);
+
+               //assign left child of parents
+               parent._left = leftChild;
+               if (head != null)
+               {
+                   var rightChild = head;
+                   head = head._right;
+                   rightChild._right = null;
+                   queue.Enqueue(rightChild);
+
+                   //assign the right child of parents
+                   parent._right = rightChild;
+               }
+            }
+
+            return head;
+        }
+
+        //geeksforgeeks.org
+        public static BTNode<T> BSTToMinHeap(BTNode<T> head)
+        {
+            //head of linkedlist
+            BTNode<T> headOfSortedList = null;
+
+            //convert bst to linkedlist
+            headOfSortedList = BSTToSortedLinkedList(head, headOfSortedList);
+
+            //insert root into linkedlist
+            head = null;
+
+            head = BSTToSortedLinkedList(head, headOfSortedList);
+            return head;
+        }
+
+        #endregion
     }
 }
